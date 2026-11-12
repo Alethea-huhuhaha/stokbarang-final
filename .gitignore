@@ -1,0 +1,67 @@
+# ============================================================
+# File yang tidak perlu / tidak boleh masuk ke Git
+# ============================================================
+
+# ---------- Environment & secrets ----------
+.env
+.env.local
+.env.*.local
+docker-compose.override.yml
+!.env.example
+
+# ---------- Database dump & backup ----------
+# Dump yang ditaruh untuk init DB jangan di-commit (bisa besar & berisi data asli)
+/docker/initdb/*.sql
+!/docker/initdb/01-schema.sql
+/backup-*.sql
+/backup-*.dump
+/*.sql.gz
+/*.dump
+# Catatan: stokbarang/database_update.sql sengaja tetap di-track karena
+# dibutuhkan untuk update schema.
+
+# ---------- File bawaan XAMPP (tidak dipakai aplikasi/Docker) ----------
+/xampp/
+/webalizer/
+/dashboard/
+/applications.html
+/bitnami.css
+
+# ---------- Log & file sementara ----------
+*.log
+error_log
+php_errors.log
+sess_*
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.swp
+*~
+*.pid
+.cache/
+
+# ---------- OS & editor ----------
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.history/
+
+# ---------- Dependency / build (jika nanti ditambahkan) ----------
+node_modules/
+vendor/
+.phpunit.result.cache
+
+# ---------- Arsip ----------
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz

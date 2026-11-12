@@ -1,0 +1,90 @@
+name: htdocs
+
+services:
+  # ---------------------------------------------------------------------------
+  # Web server: PHP 8.2 + Apache
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./docker/php
+    image: htdocs-web:latest
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      TZ: ${TZ:-Asia/Jakarta}
+      # Dipakai oleh stokbarang/fuction.php (lihat getenv di file tersebut)
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ${DB_DATABASE:-stokbarang}
+      DB_USER: ${DB_USERNAME:-stokbarang}
+      DB_PASS: ${DB_PASSWORD:-stokbarang}
+    volumes:
+      # Hanya folder aplikasi yang di-mount, supaya folder XAMPP
+      # (xampp/, webalizer/, dashboard/) dan file .env tidak ikut terekspos.
+      - ./pariwisata:/var/www/html/pariwisata:ro
+      - ./stokbarang:/var/www/html/stokbarang:ro
+      - ./img:/var/www/html/img:ro
+      - ./favicon.ico:/var/www/html/favicon.ico:ro
+      - ./docker/site/index.php:/var/www/html/index.php:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-app.ini:ro
+      - ./docker/php/apache.conf:/etc/apache2/conf-enabled/zz-app.conf:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app
+
+  # ---------------------------------------------------------------------------
+  # Database: MariaDB 11 (kompatibel dengan MySQL)
+  # ---------------------------------------------------------------------------
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Jakarta}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MARIADB_DATABASE: ${DB_DATABASE:-stokbarang}
+      MARIADB_USER: ${DB_USERNAME:-stokbarang}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-stokbarang}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Script .sql/.sh di folder ini otomatis dijalankan saat volume DB MASIH KOSONG.
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - app
+    # Port DB tidak di-publish ke host. Buka hanya jika benar-benar perlu:
+    # ports:
+    #   - "127.0.0.1:3306:3306"
+
+  # ---------------------------------------------------------------------------
+  # phpMyAdmin (opsional, jangan diaktifkan di production)
+  # Jalankan: docker compose --profile tools up -d
+  # ---------------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5
+    restart: unless-stopped
+    profiles: ["tools"]
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app
+
+networks:
+  app:
+
+volumes:
+  db_data:
